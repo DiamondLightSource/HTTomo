@@ -7,6 +7,8 @@ from mpi4py import MPI
 from nvtx import annotate
 import multiprocessing
 
+from httomo.yaml_utils import open_yaml_config
+
 from httomo.common import PipelineTasks
 
 from httomo.tasks._DATA_.data_loading import load_data
@@ -23,8 +25,8 @@ from httomo.tasks._METHODS_.reconstruction.tomopy_cpu import reconstruct
 
 def cpu_pipeline(
     in_file: Path,
+    yaml_config: Path,
     out_dir: Path,
-    data_key: str,
     dimension: int,
     crop: int = 100,
     pad: int = 0,
@@ -35,6 +37,7 @@ def cpu_pipeline(
 
     Args:
         in_file: The file to read data from.
+        yaml_config: The file containing the processing pipeline info as YAML
         out_dir: The directory to write data to.
         data_key: The input file dataset key to read.
         dimension: The dimension to slice in.
@@ -54,6 +57,16 @@ def cpu_pipeline(
         ncores = multiprocessing.cpu_count() # use all available CPU cores if not an MPI run
 
     ###################################################################################
+    #                         Loading the pipeline YAML config
+    yaml_conf = open_yaml_config(yaml_config)
+    load_conf = yaml_conf[0]['NxtomoLoader']
+    filter_conf = yaml_conf[1]['MedianFilter']
+    norm_conf = yaml_conf[2]['DarkFlatFieldCorrection']
+    stripes_conf = yaml_conf[3]['RemoveStripes']
+    centering_conf = yaml_conf[4]['VoCentering']
+    recon_conf = yaml_conf[5]['TomopyRecon']
+
+    ###################################################################################
     #                                 Loading the data
     with annotate(PipelineTasks.LOAD.name):
         (
@@ -64,17 +77,21 @@ def cpu_pipeline(
             angles_total,
             detector_y,
             detector_x,
-        ) = load_data(in_file, data_key, dimension, crop, pad, comm)
+        ) = load_data(in_file, load_conf['data_path'], dimension, crop, pad,
+                      comm)
     if stop_after == PipelineTasks.LOAD:
         sys.exit()
     ###################################################################################
     #            3D median or dezinger filter to apply to raw data/flats/darks
     method_name = 'median3d_larix'
     save_result = True
-    radius_kernel = 1 # a half-size of the median smoothing kernel
-    mu_dezinger = 0.0 # when > 0.0, then dezinging enabled, otherwise median filter
+    radius_kernel = filter_conf['kernel_size'] # a half-size of the median
+                                               # smoothing kernel
+    mu_dezinger = filter_conf['mu_dezinger'] # when > 0.0, then dezinging
+                                             # enabled, otherwise median filter
     with annotate(PipelineTasks.FILTER.name):
-        data, flats, darks = median3d_larix(data, flats, darks, radius_kernel, mu_dezinger, ncores)
+        data, flats, darks = median3d_larix(data, flats, darks, radius_kernel,
+                                            mu_dezinger, ncores)
     if save_result:
         save_data(data, run_out_dir, method_name, comm)
     if stop_after == PipelineTasks.FILTER:
@@ -91,7 +108,8 @@ def cpu_pipeline(
         sys.exit()
     ###################################################################################
     #                                 Removing stripes
-    method_name = 'remove_stripe_fw' # TomoPy methods exposed here as in tomopy.prep.stripe 
+    method_name = stripes_conf['method_name'] # TomoPy methods exposed here as
+                                              # in tomopy.prep.stripe
     save_result = True
     with annotate(PipelineTasks.STRIPES.name):
         remove_stripes_tomopy(data, method_name, ncores)
@@ -115,7 +133,7 @@ def cpu_pipeline(
         sys.exit()
     ###################################################################################
     #                           Reconstruction with gridrec
-    method_name = 'gridrec'
+    method_name = recon_conf['algorithm']
     with annotate(PipelineTasks.RECONSTRUCT.name):
         recon = reconstruct(data, angles_radians, rot_center)
     if save_result:

@@ -1,0 +1,166 @@
+Loading:
+  - NxtomoLoader:
+#      name:
+#        dtype: str
+#        description: A name assigned to the dataset
+#        default: tomo
+      data_path:
+        dtype: str
+        description: Path to the data inside the hdf/nxs file
+        default: entry1/tomo_entry/data/data
+      image_key_path:
+        dtype: str
+        description: Path to the image key entry inside the nxs file.
+          Set this parameter to None if use this loader for radiography.
+        default: entry1/tomo_entry/instrument/detector/image_key
+#      dark:
+#        dtype: str
+#        description: Path to the darks inside the hdf/nxs file
+#        default: None
+#      flat:
+#        dtype: str
+#        description: Path to the flats inside the hdf/nxs file
+#        default: None
+#      angles:
+#        dtype: [str, int, None]
+#        description: If the angles parameter is set to None, then values from
+#          default dataset used.
+#        default: None
+Filtering:
+  - MedianFilter:
+      kernel_size:
+        dtype: int
+        description: Kernel size of the median filter.
+        default: 3
+      kernel_dimension:
+        dtype: str
+        description: Select between 2D or 3D kernel for filtering.
+        default: 3D
+Normalisation:
+  - DarkFlatFieldCorrection:
+#      lower_bound:
+#        dtype: [None,float]
+#        description: Set all values below the lower_bound to this value.
+#        default: None
+#      upper_bound:
+#        dtype: [None,float]
+#        description: Set all values above the upper bound to this value.
+#        default: None
+#      warn_proportion:
+#        dtype: float
+#        description: Output a warning if this proportion of values, or
+#              greater, are below and/or above the lower/upper bounds.
+#              E.g. Enter 0.05 for 5%.
+#        default: 0.05
+StripeRemoval:
+  - RemoveStripes:
+      method_name:
+        dtype: str
+        description: Name of stripe removal method to apply
+        default: remove_stripe_fw
+Centering:
+  - VoCentering:
+#      preview:
+#        dtype: preview
+#        description: A slice list of required frames (sinograms) to use in the
+#          calculation of the centre of rotation (this will not reduce the data
+#          size for subsequent plugins).
+#        default: '[]'
+#        example: 'The typical three dimensional data structure is [angles, detY,
+#          detZ], e.g. for sinogram choose [:,sliceNo,:] [angles, detZ, detY]. If
+#          the data is four dimensional, include a time parameter.'
+#      start_pixel:
+#        dtype: [int,None]
+#        description: The estimated centre of rotation. If value is None, use the
+#          horizontal centre of the image.
+#        default: 'None'
+#      search_area:
+#        dtype: list[float,float]
+#        description: Search area around the estimated centre of rotation
+#        default: [-50, 50]
+#      ratio:
+#        dtype: float
+#        description: The ratio between the size of a sample and the field of
+#          view of a camera
+#        default: 0.5
+#      search_radius:
+#        dtype: int
+#        description: Use for fine searching
+#        default: 6
+#      step:
+#        dtype: float
+#        description: Step of fine searching
+#        default: 0.5
+#      datasets_to_populate:
+#        dtype: [list[],list[str]]
+#        description: A list of datasets which require this information
+#        default: []
+#      out_datasets:
+#        dtype: [list[],list[str]]
+#        description: The default names
+#        default: "['cor_preview', 'cor_broadcast']"
+#      broadcast_method:
+#        dtype: str
+#        options: [median, mean, nearest, linear_fit]
+#        description:
+#          summary: Method of broadcasting centre values calculated from preview
+#            slices to full dataset.
+#          options:
+#              median:
+#              mean:
+#              nearest:
+#              linear_fit:
+#        default: median
+#      row_drop:
+#        dtype: int
+#        description: Drop lines around vertical center of the mask
+#        default: 20
+#      average_radius:
+#        dtype: int
+#        description: Averaging sinograms around a required sinogram to improve
+#          signal-to-noise ratio
+#        default: 5
+Reconstruction:
+  - TomopyRecon:
+      algorithm:
+        dtype: str
+        description: The reconstruction algorithm
+        default: gridrec
+        options: [art, bart, fbp, gridrec, mlem, osem, ospml_hybrid,
+                  ospml_quat, pml_hybrid, pml_quad, sirt]
+#      filter_name:
+#        dtype: [None, str]
+#        description: Name of the filter for analytic reconstruction
+#        default: ramlak
+#        options: [None,shepp,cosine,hann,hamming,ramlak,parzen,butterworth]
+#        dependency:
+#            algorithm: [fbp, gridrec]
+#      reg_par:
+#        dtype: float
+#        description: Regularization parameter for smoothing
+#        default: 0.0
+#        dependency:
+#            algorithm: [ospml_hybrid, ospml_quad, pml_hybrid, pml_quad]
+#      n_iterations:
+#        dtype: int
+#        description: Number of iterations.
+#        default: 1
+#        dependency:
+#            algorithm: [art, bart, mlem, osem, ospml_hybrid,
+#                        ospml_quad, pml_hybrid, pml_quad, sirt]
+#      outer_pad:
+#        dtype: [bool, float]
+#        description: 'Pad the sinogram width to fill the
+#          reconstructed volume for asthetic purposes. Choose
+#          from True (defaults to sqrt(2)), False or
+#          float <= 2.1.'
+#        warning: This will increase the size of the data and
+#          the time to compute the reconstruction. Only available
+#          for selected algorithms and will be ignored otherwise.
+#        default: False
+#        dependency:
+#          algorithm: [fbp, gridrec]
+#      init_vol:
+#        dtype: [None,int]
+#        description: Not an option.
+#        default: None

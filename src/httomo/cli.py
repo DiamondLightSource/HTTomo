@@ -15,8 +15,8 @@ class GlobalOptions:
     """An immutable store of global program options."""
 
     in_file: Path
+    yaml_config: Path
     out_dir: Path
-    data_key: str
     dimension: int
     crop: int
     pad: int
@@ -27,15 +27,12 @@ class GlobalOptions:
 @click.group(invoke_without_command=True)
 @click.argument("in_file", type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.argument(
+    "yaml_config",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path)
+)
+@click.argument(
     "out_dir",
     type=click.Path(exists=True, file_okay=False, writable=True, path_type=Path),
-)
-@click.option(
-    "-k",
-    "--data_key",
-    type=click.STRING,
-    default="/entry1/tomo_entry/data/data",
-    help="The path to data within the hdf5 file.",
 )
 @click.option(
     "-d",
@@ -75,8 +72,8 @@ class GlobalOptions:
 def main(
     ctx: click.Context,
     in_file: Path,
+    yaml_config: Path,
     out_dir: Path,
-    data_key: str,
     dimension: int,
     crop: int,
     pad: int,
@@ -85,7 +82,7 @@ def main(
 ):
     """httomo: High Throughput Tomography."""
     ctx.obj = GlobalOptions(
-        in_file, out_dir, data_key, dimension, crop, pad, ncores, stop_after
+        in_file, yaml_config, out_dir, dimension, crop, pad, ncores, stop_after
     )
 
     if ctx.invoked_subcommand is None:
@@ -98,8 +95,8 @@ def cpu(global_options: GlobalOptions):
     """Perform reconstruction using the reference CPU pipeline."""
     cpu_pipeline(
         global_options.in_file,
+        global_options.yaml_config,
         global_options.out_dir,
-        global_options.data_key,
         global_options.dimension,
         global_options.crop,
         global_options.pad,
@@ -114,8 +111,8 @@ def gpu(global_options: GlobalOptions):
     """Perform reconstruction using the GPU accelerated pipeline."""
     gpu_pipeline(
         global_options.in_file,
+        global_options.yaml_config,
         global_options.out_dir,
-        global_options.data_key,
         global_options.dimension,
         global_options.crop,
         global_options.pad,

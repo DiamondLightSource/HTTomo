@@ -1,0 +1,17 @@
+- NxtomoLoader:
+    name: tomo
+    data_path: entry1/tomo_entry/data/data
+    image_key_path: entry1/tomo_entry/instrument/detector/image_key
+#    dark: None
+#    flat: None
+#    angles: None
+- MedianFilter:
+#    kernel_dimension: 3D
+    kernel_size: 1
+    mu_dezinger: 0.0
+- DarkFlatFieldCorrection:
+- RemoveStripes:
+    method_name: remove_stripe_fw
+- VoCentering:
+- TomopyRecon:
+    algorithm: gridrec
